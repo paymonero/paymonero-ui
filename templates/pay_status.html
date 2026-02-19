@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Status — PayMonero{% endblock %}
+
+{% block content %}
+<div class="pay-container text-center" style="padding-top: 3rem;">
+    {% if invoice.status == "paid" %}
+        <div style="font-size: 4rem;">✓</div>
+        <h2 class="text-green">Payment Confirmed</h2>
+        <p class="dim mt-1">{{ invoice.amount_received|format_xmr_short }} XMR received</p>
+    {% else if invoice.status == "pending" %}
+        <div style="font-size: 4rem;">⏳</div>
+        <h2 class="text-yellow">Waiting for Confirmations</h2>
+        <p class="dim mt-1">{{ invoice.confirmations }} confirmations so far</p>
+        <a href="/pay/{{ invoice.id }}/status" class="refresh-link mt-1">↻ Refresh</a>
+        <meta http-equiv="refresh" content="15">
+    {% else if invoice.status == "partial" %}
+        <div style="font-size: 4rem;">◐</div>
+        <h2 class="text-purple">Partial Payment</h2>
+        <p class="dim mt-1">{{ invoice.amount_received|format_xmr_short }} of {{ invoice.amount_atomic|format_xmr_short }} XMR received</p>
+        <a href="/pay/{{ invoice.id }}" class="refresh-link mt-1">View payment page</a>
+        <meta http-equiv="refresh" content="15">
+    {% else if invoice.status == "expired" %}
+        <div style="font-size: 4rem; color: var(--text-dim);">✕</div>
+        <h2 style="color: var(--text-dim);">Expired</h2>
+    {% else %}
+        <div style="font-size: 4rem;">⏳</div>
+        <h2>{{ invoice.status }}</h2>
+        <meta http-equiv="refresh" content="15">
+    {% endif %}
+</div>
+{% endblock %}
