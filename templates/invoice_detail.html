@@ -3,159 +3,140 @@
 
 {% block content %}
 <nav>
-    <div class="nav-brand">PayMonero <span>admin</span></div>
+    <span class="brand">paymonero</span>
     <div class="nav-links">
-        <a href="/admin">← Dashboard</a>
-        <a href="/pay/{{ invoice.id }}">Pay page →</a>
+        <a href="/admin">← dashboard</a>
+        <a href="/pay/{{ invoice.id }}">pay page →</a>
     </div>
 </nav>
 
-<h2 style="margin-bottom: 0.5rem;">
-    Invoice
-    <span class="badge {{ invoice.status|status_class }}">{{ invoice.status }}</span>
-</h2>
-<p class="dim mb-2" style="font-family: var(--mono); font-size: 0.8rem;">{{ invoice.id }}</p>
+<div class="mb">
+    <span class="badge">{{ invoice.status }}</span>
+    &nbsp;
+    <span class="dim" style="font-size:12px;">{{ invoice.id }}</span>
+</div>
 
-<div class="detail-grid">
-    <!-- Left column -->
-    <div class="card">
-        <div class="field">
-            <div class="field-label">Amount Required</div>
-            <div class="field-value large">{{ invoice.amount_atomic|format_xmr_short }} XMR</div>
-            <div class="dim" style="font-size: 0.75rem;">{{ invoice.amount_atomic }} piconero</div>
-        </div>
-
-        <div class="field">
-            <div class="field-label">Amount Received</div>
-            <div class="field-value large
-                {%- if invoice.amount_received >= invoice.amount_atomic %} text-green
-                {%- else if invoice.amount_received > 0 %} text-purple
-                {%- endif %}">
-                {{ invoice.amount_received|format_xmr_short }} XMR
-            </div>
-            {% if invoice.amount_received < invoice.amount_atomic && invoice.amount_received > 0 %}
-                <div class="text-red" style="font-size: 0.85rem; margin-top: 0.25rem;">
-                    ⚠ Underpaid by {{ shortfall_xmr }} XMR
-                </div>
-            {% endif %}
-            {% if invoice.overpayment_atomic > 0 %}
-                <div class="text-yellow" style="font-size: 0.85rem; margin-top: 0.25rem;">
-                    ⚠ Overpaid by {{ overpayment_xmr }} XMR
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="field">
-            <div class="field-label">Confirmations</div>
-            <div class="field-value">{{ invoice.confirmations }}</div>
-        </div>
-
-        {% match invoice.description %}
-            {% when Some with (d) %}
-            <div class="field">
-                <div class="field-label">Description</div>
-                <div class="field-value">{{ d }}</div>
-            </div>
-            {% when None %}
-        {% endmatch %}
-
-        {% match invoice.external_id %}
-            {% when Some with (eid) %}
-            <div class="field">
-                <div class="field-label">External ID</div>
-                <div class="field-value mono">{{ eid }}</div>
-            </div>
-            {% when None %}
-        {% endmatch %}
+<div class="fields">
+    <div class="field">
+        <div class="field-label">amount required</div>
+        <div class="field-value large">{{ invoice.amount_atomic|format_xmr_short }} XMR</div>
+        <div class="dim" style="font-size:11px;">{{ invoice.amount_atomic }} piconero</div>
     </div>
 
-    <!-- Right column -->
-    <div class="card">
-        <div class="field">
-            <div class="field-label">Payment Address</div>
-            <div class="field-value mono" style="font-size: 0.7rem;">{{ invoice.address }}</div>
+    <div class="field">
+        <div class="field-label">amount received</div>
+        <div class="field-value large {% if invoice.amount_received >= invoice.amount_atomic %}green{% endif %}">
+            {{ invoice.amount_received|format_xmr_short }} XMR
         </div>
+        {% if invoice.amount_received < invoice.amount_atomic && invoice.amount_received > 0 %}
+            <div class="red" style="font-size:12px;">underpaid by {{ shortfall_xmr }} XMR</div>
+        {% endif %}
+        {% if invoice.overpayment_atomic > 0 %}
+            <div style="font-size:12px;">overpaid by {{ overpayment_xmr }} XMR</div>
+        {% endif %}
+    </div>
 
-        {% match invoice.txid %}
-            {% when Some with (tx) %}
-            <div class="field">
-                <div class="field-label">Transaction ID</div>
-                <div class="field-value mono" style="font-size: 0.7rem;">{{ tx }}</div>
-            </div>
-            {% when None %}
-        {% endmatch %}
+    <div class="field">
+        <div class="field-label">confirmations</div>
+        <div class="field-value">{{ invoice.confirmations }}</div>
+    </div>
 
+    {% match invoice.description %}
+        {% when Some with (d) %}
         <div class="field">
-            <div class="field-label">Created</div>
-            <div class="field-value">{{ invoice.created_at }}</div>
+            <div class="field-label">description</div>
+            <div class="field-value">{{ d }}</div>
         </div>
+        {% when None %}
+    {% endmatch %}
 
+    {% match invoice.external_id %}
+        {% when Some with (eid) %}
         <div class="field">
-            <div class="field-label">Expires</div>
-            <div class="field-value">{{ invoice.expires_at }}</div>
+            <div class="field-label">external id</div>
+            <div class="field-value">{{ eid }}</div>
         </div>
+        {% when None %}
+    {% endmatch %}
 
-        {% match invoice.paid_at %}
-            {% when Some with (pa) %}
-            <div class="field">
-                <div class="field-label">Paid At</div>
-                <div class="field-value text-green">{{ pa }}</div>
-            </div>
-            {% when None %}
-        {% endmatch %}
+    <div class="field">
+        <div class="field-label">payment address</div>
+        <div class="field-value" style="font-size:12px;">{{ invoice.address }}</div>
+    </div>
 
+    {% match invoice.txid %}
+        {% when Some with (tx) %}
         <div class="field">
-            <div class="field-label">Webhook</div>
-            <div class="field-value">
-                {% match invoice.callback_url %}
-                    {% when Some with (url) %}
-                        {{ url }}
-                        {% if invoice.callback_delivered %}
-                            <span class="text-green">✓ delivered</span>
-                        {% else %}
-                            <span class="dim">({{ invoice.callback_attempts }} attempts)</span>
-                        {% endif %}
-                    {% when None %}
-                        <span class="dim">Not configured</span>
-                {% endmatch %}
-            </div>
+            <div class="field-label">transaction id</div>
+            <div class="field-value" style="font-size:12px;">{{ tx }}</div>
+        </div>
+        {% when None %}
+    {% endmatch %}
+
+    <div class="field">
+        <div class="field-label">created</div>
+        <div class="field-value">{{ invoice.created_at }}</div>
+    </div>
+
+    <div class="field">
+        <div class="field-label">expires</div>
+        <div class="field-value">{{ invoice.expires_at }}</div>
+    </div>
+
+    {% match invoice.paid_at %}
+        {% when Some with (pa) %}
+        <div class="field">
+            <div class="field-label">paid at</div>
+            <div class="field-value green">{{ pa }}</div>
+        </div>
+        {% when None %}
+    {% endmatch %}
+
+    <div class="field">
+        <div class="field-label">webhook</div>
+        <div class="field-value">
+            {% match invoice.callback_url %}
+                {% when Some with (url) %}
+                    {{ url }}
+                    {% if invoice.callback_delivered %}
+                        <span class="green">✓ delivered</span>
+                    {% else %}
+                        <span class="dim">({{ invoice.callback_attempts }} attempts)</span>
+                    {% endif %}
+                {% when None %}
+                    <span class="dim">not configured</span>
+            {% endmatch %}
         </div>
     </div>
 </div>
 
-<!-- Payment transactions -->
-<h3 style="margin-bottom: 1rem;">Payment Transactions</h3>
-<div class="card">
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Transaction ID</th>
-                    <th>Amount</th>
-                    <th>Confirmations</th>
-                    <th>Block Height</th>
-                    <th>Detected</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in payments %}
-                <tr>
-                    <td class="mono" style="font-size: 0.7rem;">{{ p.txid }}</td>
-                    <td class="mono">{{ p.amount_atomic|format_xmr_short }} XMR</td>
-                    <td class="mono">{{ p.confirmations }}</td>
-                    <td class="mono">{{ p.height }}</td>
-                    <td class="dim">{{ p.detected_at|timeago }}</td>
-                </tr>
-                {% endfor %}
-                {% if payments.is_empty() %}
-                <tr>
-                    <td colspan="5" class="text-center dim" style="padding: 1.5rem;">
-                        No payments received yet.
-                    </td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-</div>
+<div class="section-title">payment transactions</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>txid</th>
+            <th>amount</th>
+            <th>confs</th>
+            <th>height</th>
+            <th>detected</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in payments %}
+        <tr>
+            <td style="font-size:11px;">{{ p.txid }}</td>
+            <td>{{ p.amount_atomic|format_xmr_short }} XMR</td>
+            <td>{{ p.confirmations }}</td>
+            <td>{{ p.height }}</td>
+            <td class="dim">{{ p.detected_at|timeago }}</td>
+        </tr>
+        {% endfor %}
+        {% if payments.is_empty() %}
+        <tr>
+            <td colspan="5" class="dim" style="text-align:center; padding: 1rem;">no payments received yet</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
 {% endblock %}

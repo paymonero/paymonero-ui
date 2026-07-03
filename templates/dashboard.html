@@ -3,129 +3,98 @@
 
 {% block content %}
 <nav>
-    <div class="nav-brand">PayMonero <span>admin</span></div>
+    <span class="brand">paymonero</span>
     <div class="nav-links">
-        <a href="/admin">Dashboard</a>
+        <a href="/admin">dashboard</a>
     </div>
 </nav>
 
-<!-- Stats -->
 <div class="stats">
-    <div class="card stat">
+    <div class="stat">
         <div class="stat-value">{{ stats.total_invoices }}</div>
-        <div class="stat-label">Total Invoices</div>
+        <div class="stat-label">total</div>
     </div>
-    <div class="card stat">
-        <div class="stat-value text-green">{{ stats.paid_count }}</div>
-        <div class="stat-label">Paid</div>
+    <div class="stat">
+        <div class="stat-value green">{{ stats.paid_count }}</div>
+        <div class="stat-label">paid</div>
     </div>
-    <div class="card stat">
-        <div class="stat-value text-yellow">{{ stats.pending_count }}</div>
-        <div class="stat-label">Pending</div>
+    <div class="stat">
+        <div class="stat-value">{{ stats.pending_count }}</div>
+        <div class="stat-label">pending</div>
     </div>
-    <div class="card stat">
-        <div class="stat-value text-purple">{{ stats.partial_count }}</div>
-        <div class="stat-label">Partial</div>
+    <div class="stat">
+        <div class="stat-value">{{ stats.partial_count }}</div>
+        <div class="stat-label">partial</div>
     </div>
-    <div class="card stat">
-        <div class="stat-value">{{ stats.expired_count }}</div>
-        <div class="stat-label">Expired</div>
+    <div class="stat">
+        <div class="stat-value dim">{{ stats.expired_count }}</div>
+        <div class="stat-label">expired</div>
     </div>
-    <div class="card stat">
-        <div class="stat-value text-green">{{ stats.total_received_xmr() }}</div>
-        <div class="stat-label">XMR Received</div>
+    <div class="stat">
+        <div class="stat-value green">{{ stats.total_received_xmr() }}</div>
+        <div class="stat-label">xmr received</div>
     </div>
 </div>
 
-<!-- Filters -->
 <div class="filters">
-    <a href="/admin" class="filter-btn{% if filter.is_empty() %} active{% endif %}">All</a>
-    <a href="/admin?status=new" class="filter-btn{% if filter == "new" %} active{% endif %}">New</a>
-    <a href="/admin?status=partial" class="filter-btn{% if filter == "partial" %} active{% endif %}">Partial</a>
-    <a href="/admin?status=pending" class="filter-btn{% if filter == "pending" %} active{% endif %}">Pending</a>
-    <a href="/admin?status=paid" class="filter-btn{% if filter == "paid" %} active{% endif %}">Paid</a>
-    <a href="/admin?status=expired" class="filter-btn{% if filter == "expired" %} active{% endif %}">Expired</a>
-    <a href="/admin?status=cancelled" class="filter-btn{% if filter == "cancelled" %} active{% endif %}">Cancelled</a>
+    <a href="/admin" class="filter-btn{% if filter.is_empty() %} active{% endif %}">all</a>
+    <a href="/admin?status=new" class="filter-btn{% if filter == "new" %} active{% endif %}">new</a>
+    <a href="/admin?status=partial" class="filter-btn{% if filter == "partial" %} active{% endif %}">partial</a>
+    <a href="/admin?status=pending" class="filter-btn{% if filter == "pending" %} active{% endif %}">pending</a>
+    <a href="/admin?status=paid" class="filter-btn{% if filter == "paid" %} active{% endif %}">paid</a>
+    <a href="/admin?status=expired" class="filter-btn{% if filter == "expired" %} active{% endif %}">expired</a>
+    <a href="/admin?status=cancelled" class="filter-btn{% if filter == "cancelled" %} active{% endif %}">cancelled</a>
 </div>
 
-<!-- Invoice table -->
-<div class="card">
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Status</th>
-                    <th>Amount</th>
-                    <th>Received</th>
-                    <th>Description</th>
-                    <th>Created</th>
-                    <th>Confs</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inv in invoices %}
-                <tr>
-                    <td>
-                        <span class="badge {{ inv.status|status_class }}">{{ inv.status }}</span>
-                    </td>
-                    <td class="mono">{{ inv.amount_atomic|format_xmr_short }}</td>
-                    <td class="mono">
-                        {% if inv.amount_received > 0 %}
-                            {% if inv.amount_received < inv.amount_atomic %}
-                                <span class="text-purple">{{ inv.amount_received|format_xmr_short }}</span>
-                            {% else if inv.amount_received > inv.amount_atomic %}
-                                <span class="text-yellow">{{ inv.amount_received|format_xmr_short }}</span>
-                            {% else %}
-                                <span class="text-green">{{ inv.amount_received|format_xmr_short }}</span>
-                            {% endif %}
-                        {% else %}
-                            <span class="dim">—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% match inv.description %}
-                            {% when Some with (d) %}{{ d }}{% when None %}
-                            <span class="dim">—</span>
-                        {% endmatch %}
-                    </td>
-                    <td class="dim">{{ inv.created_at|timeago }}</td>
-                    <td class="mono">{{ inv.confirmations }}</td>
-                    <td>
-                        <a href="/admin/invoice/{{ inv.id }}">details</a>
-                        &nbsp;
-                        <a href="/pay/{{ inv.id }}">pay→</a>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if invoices.is_empty() %}
-                <tr>
-                    <td colspan="7" class="text-center dim" style="padding: 2rem;">
-                        No invoices found.
-                    </td>
-                </tr>
+<table>
+    <thead>
+        <tr>
+            <th>status</th>
+            <th>amount</th>
+            <th>received</th>
+            <th>description</th>
+            <th>created</th>
+            <th>confs</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for inv in invoices %}
+        <tr>
+            <td><span class="badge">{{ inv.status }}</span></td>
+            <td>{{ inv.amount_atomic|format_xmr_short }}</td>
+            <td>
+                {% if inv.amount_received > 0 %}
+                    {% if inv.amount_received >= inv.amount_atomic %}
+                        <span class="green">{{ inv.amount_received|format_xmr_short }}</span>
+                    {% else %}
+                        {{ inv.amount_received|format_xmr_short }}
+                    {% endif %}
+                {% else %}
+                    <span class="dim">—</span>
                 {% endif %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Pagination -->
-{% if total_pages > 1 %}
-<div class="pagination">
-    {% if page > 1 %}
-        <a href="/admin?page={{ page - 1 }}{% if !filter.is_empty() %}&status={{ filter }}{% endif %}">← prev</a>
-    {% endif %}
-    {% for p in 1..=total_pages %}
-        {% if p == page %}
-            <span class="current">{{ p }}</span>
-        {% else %}
-            <a href="/admin?page={{ p }}{% if !filter.is_empty() %}&status={{ filter }}{% endif %}">{{ p }}</a>
+            </td>
+            <td>
+                {% match inv.description %}
+                    {% when Some with (d) %}{{ d }}{% when None %}<span class="dim">—</span>
+                {% endmatch %}
+            </td>
+            <td class="dim">{{ inv.created_at|timeago }}</td>
+            <td>{{ inv.confirmations }}</td>
+            <td>
+                <a href="/admin/invoice/{{ inv.id }}">detail</a>
+                &nbsp;
+                <a href="/pay/{{ inv.id }}">pay</a>
+            </td>
+        </tr>
+        {% endfor %}
+        {% if invoices.is_empty() %}
+        <tr>
+            <td colspan="7" class="dim" style="text-align:center; padding: 1.5rem;">no invoices found</td>
+        </tr>
         {% endif %}
-    {% endfor %}
-    {% if page < total_pages %}
-        <a href="/admin?page={{ page + 1 }}{% if !filter.is_empty() %}&status={{ filter }}{% endif %}">next →</a>
-    {% endif %}
-</div>
-{% endif %}
+    </tbody>
+</table>
+
+{{ pagination_html|safe }}
 {% endblock %}

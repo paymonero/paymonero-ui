@@ -1,3 +1,4 @@
+use askama::Template;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -5,7 +6,6 @@ use axum::{
     routing::get,
     Router,
 };
-use askama::Template;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tower_http::services::ServeDir;
@@ -35,6 +35,7 @@ struct DashboardTemplate {
     filter: String,
     page: i64,
     total_pages: i64,
+    pagination_html: String,
 }
 
 #[derive(Template)]
@@ -154,15 +155,16 @@ async fn main() {
     dotenv::dotenv().ok();
     tracing_subscriber::fmt::init();
 
-    let database_url =
-        std::env::var("DATABASE_URL").expect("DATABASE_URL required");
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL required");
     let api_url =
         std::env::var("PAYMONERO_API_URL").unwrap_or_else(|_| "http://127.0.0.1:3000".to_string());
     let api_key = std::env::var("PAYMONERO_API_KEY").unwrap_or_else(|_| "none".to_string());
     let host = std::env::var("UI_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = std::env::var("UI_PORT").unwrap_or_else(|_| "8080".to_string());
 
-    let pool = PgPool::connect(&database_url).await.expect("Failed to connect to database");
+    let pool = PgPool::connect(&database_url)
+        .await
+        .expect("Failed to connect to database");
 
     let state = Arc::new(AppState {
         pool,
@@ -208,11 +210,10 @@ async fn dashboard(
         .await
         .map_err(|e| AppError(e.to_string()))?;
 
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM invoices")
-                .fetch_one(&state.pool)
-                .await
-                .map_err(|e| AppError(e.to_string()))?;
+        let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM invoices")
+            .fetch_one(&state.pool)
+            .await
+            .map_err(|e| AppError(e.to_string()))?;
 
         (rows, total.0)
     } else {
@@ -226,18 +227,20 @@ async fn dashboard(
         .await
         .map_err(|e| AppError(e.to_string()))?;
 
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM invoices WHERE status = $1")
-                .bind(&filter)
-                .fetch_one(&state.pool)
-                .await
-                .map_err(|e| AppError(e.to_string()))?;
+        let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM invoices WHERE status = $1")
+            .bind(&filter)
+            .fetch_one(&state.pool)
+            .await
+            .map_err(|e| AppError(e.to_string()))?;
 
         (rows, total.0)
     };
 
     let total_pages = (total + PAGE_SIZE - 1) / PAGE_SIZE;
-    let stats = DashboardStats::load(&state.pool).await.map_err(|e| AppError(e.to_string()))?;
+    let pagination_html = build_pagination(page, total_pages, &filter);
+    let stats = DashboardStats::load(&state.pool)
+        .await
+        .map_err(|e| AppError(e.to_string()))?;
 
     let tmpl = DashboardTemplate {
         invoices,
@@ -245,6 +248,7 @@ async fn dashboard(
         filter,
         page,
         total_pages,
+        pagination_html,
     };
 
     Ok(Html(tmpl.render().map_err(|e| AppError(e.to_string()))?))
@@ -310,7 +314,9 @@ async fn pay_page(
 
     let qr_svg = qr::generate_svg(&monero_uri);
 
-    let time_left = (invoice.expires_at - chrono::Utc::now()).num_seconds().max(0);
+    let time_left = (invoice.expires_at - chrono::Utc::now())
+        .num_seconds()
+        .max(0);
 
     let tmpl = PayTemplate {
         invoice,
@@ -350,4 +356,53 @@ fn format_xmr_display(atomic: i64) -> String {
     } else {
         format!("{}.{}", whole, trimmed)
     }
+}
+
+fn build_pagination(page: i64, total_pages: i64, filter: &str) -> String {
+    if total_pages <= 1 {
+        return String::new();
+    }
+
+    let filter_param = if filter.is_empty() {
+        String::new()
+    } else {
+        format!("&status={}", filter)
+    };
+
+    let url = |p: i64| format!("/admin?page={}{}", p, filter_param);
+
+    let mut html = String::from("<div class=\"pagination\">");
+
+    if page > 1 {
+        html.push_str(&format!("<a href=\"{}\">←</a>", url(page - 1)));
+    }
+    if page > 3 {
+        html.push_str(&format!("<a href=\"{}\">1</a>", url(1)));
+        if page > 4 {
+            html.push_str("<span>…</span>");
+        }
+    }
+    for p in ((page - 2).max(1))..=((page + 2).min(total_pages)) {
+        if p == page {
+            html.push_str(&format!("<span class=\"current\">{}</span>", p));
+        } else {
+            html.push_str(&format!("<a href=\"{}\">{}</a>", url(p), p));
+        }
+    }
+    if page < total_pages - 2 {
+        if page < total_pages - 3 {
+            html.push_str("<span>…</span>");
+        }
+        html.push_str(&format!(
+            "<a href=\"{}\">{}</a>",
+            url(total_pages),
+            total_pages
+        ));
+    }
+    if page < total_pages {
+        html.push_str(&format!("<a href=\"{}\">→</a>", url(page + 1)));
+    }
+
+    html.push_str("</div>");
+    html
 }

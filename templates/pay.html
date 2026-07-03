@@ -2,112 +2,75 @@
 {% block title %}Pay — PayMonero{% endblock %}
 
 {% block head %}
-<!-- Auto-refresh every 15 seconds to poll payment status (no JS needed!) -->
 {% if invoice.status == "new" || invoice.status == "partial" %}
 <meta http-equiv="refresh" content="15">
 {% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="pay-container">
-    <div class="pay-header">
-        <div style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem;">
-            {% match invoice.description %}
-                {% when Some with (d) %}{{ d }}{% when None %}Payment Request
-            {% endmatch %}
-        </div>
+<div class="pay-wrap">
 
-        {% if invoice.status == "new" || invoice.status == "partial" %}
-            <!-- Active payment -->
-            <div class="pay-amount">{{ remaining_xmr }} XMR</div>
-            <div class="pay-amount-label">
-                {% if invoice.status == "partial" %}
-                    remaining to pay
-                    <br>
-                    <span class="text-purple" style="font-size: 0.85rem;">
-                        {{ invoice.amount_received|format_xmr_short }} XMR received so far
-                    </span>
-                {% else %}
-                    amount due
-                {% endif %}
-            </div>
-        {% else if invoice.status == "pending" %}
-            <!-- Waiting for confirmations -->
-            <div class="pay-status-box">
-                <div class="pay-status-icon">⏳</div>
-                <div style="font-size: 1.2rem; color: var(--yellow);">Payment received</div>
-                <div class="dim mt-1">
-                    Waiting for confirmations ({{ invoice.confirmations }})
-                </div>
-                <a href="/pay/{{ invoice.id }}" class="refresh-link mt-1">↻ Refresh</a>
-            </div>
-        {% else if invoice.status == "paid" %}
-            <!-- Paid -->
-            <div class="pay-status-box">
-                <div class="pay-status-icon">✓</div>
-                <div style="font-size: 1.2rem; color: var(--green);">Payment confirmed</div>
-                <div class="dim mt-1">
-                    {{ invoice.amount_received|format_xmr_short }} XMR received
-                </div>
-            </div>
-        {% else if invoice.status == "expired" %}
-            <!-- Expired -->
-            <div class="pay-status-box">
-                <div class="pay-status-icon" style="color: var(--text-dim);">✕</div>
-                <div style="font-size: 1.2rem; color: var(--text-dim);">Invoice expired</div>
-                {% if invoice.amount_received > 0 %}
-                    <div class="text-purple mt-1">
-                        {{ invoice.amount_received|format_xmr_short }} XMR was received
-                        but the invoice has expired. Contact the merchant.
-                    </div>
-                {% endif %}
-            </div>
-        {% else %}
-            <!-- Cancelled or other -->
-            <div class="pay-status-box">
-                <div class="pay-status-icon" style="color: var(--red);">✕</div>
-                <div style="font-size: 1.2rem; color: var(--red);">Invoice {{ invoice.status }}</div>
-            </div>
-        {% endif %}
-    </div>
+    <div class="brand mb" style="text-align:center;">paymonero</div>
 
     {% if invoice.status == "new" || invoice.status == "partial" %}
-        <!-- QR Code -->
-        <div class="card text-center mb-1">
-            <div class="qr-container">
-                {{ qr_svg|safe }}
-            </div>
 
-            <div class="address-box">{{ invoice.address }}</div>
-
-            <div class="timer">
-                {% if time_left_secs > 3600 %}
-                    Expires in {{ time_left_secs / 3600 }}h {{ (time_left_secs % 3600) / 60 }}m
-                {% else if time_left_secs > 60 %}
-                    Expires in {{ time_left_secs / 60 }}m {{ time_left_secs % 60 }}s
-                {% else if time_left_secs > 0 %}
-                    <span class="text-red">Expires in {{ time_left_secs }}s</span>
-                {% else %}
-                    <span class="text-red">Expired</span>
-                {% endif %}
-            </div>
-
-            <noscript>
-                <p class="dim" style="font-size: 0.75rem; margin-top: 0.5rem;">
-                    This page refreshes automatically every 15 seconds.
-                </p>
-            </noscript>
+        <div class="pay-amount">{{ remaining_xmr }} XMR</div>
+        <div class="pay-label">
+            {% if invoice.status == "partial" %}
+                remaining — {{ invoice.amount_received|format_xmr_short }} XMR received so far
+            {% else %}
+                {% match invoice.description %}
+                    {% when Some with (d) %}{{ d }}{% when None %}amount due{% endmatch %}
+            {% endif %}
         </div>
 
-        <div class="card" style="font-size: 0.8rem;">
-            <p class="dim mb-1">Send exactly <strong class="mono" style="color: var(--accent);">{{ remaining_xmr }} XMR</strong> to the address above.</p>
-            <p class="dim">Payment will be detected automatically. This page refreshes every 15 seconds.</p>
-        </div>
-    {% endif %}
+        <div class="qr-box">{{ qr_svg|safe }}</div>
 
-    {% if invoice.status == "pending" %}
-        <!-- Pending - auto refresh -->
+        <div class="address">{{ invoice.address }}</div>
+
+        <div class="timer{% if time_left_secs < 60 %} urgent{% endif %}">
+            {% if time_left_secs > 3600 %}
+                expires in {{ time_left_secs / 3600 }}h {{ (time_left_secs % 3600) / 60 }}m
+            {% else if time_left_secs > 60 %}
+                expires in {{ time_left_secs / 60 }}m {{ time_left_secs % 60 }}s
+            {% else if time_left_secs > 0 %}
+                expires in {{ time_left_secs }}s
+            {% else %}
+                expired
+            {% endif %}
+        </div>
+
+        <div class="hint">
+            send exactly <strong>{{ remaining_xmr }} XMR</strong> to the address above.<br>
+            page refreshes every 15 seconds.
+        </div>
+
+    {% else if invoice.status == "pending" %}
         <meta http-equiv="refresh" content="15">
+        <div class="status-icon">⏳</div>
+        <div class="status-msg">payment received</div>
+        <div class="status-sub">waiting for confirmations ({{ invoice.confirmations }})</div>
+        <a href="/pay/{{ invoice.id }}" class="btn">↻ refresh</a>
+
+    {% else if invoice.status == "paid" %}
+        <div class="status-icon">✓</div>
+        <div class="status-msg green">confirmed</div>
+        <div class="status-sub">{{ invoice.amount_received|format_xmr_short }} XMR received</div>
+
+    {% else if invoice.status == "expired" %}
+        <div class="status-icon dim">✕</div>
+        <div class="status-msg dim">expired</div>
+        {% if invoice.amount_received > 0 %}
+            <div class="status-sub red">
+                {{ invoice.amount_received|format_xmr_short }} XMR was received but the invoice expired. contact the merchant.
+            </div>
+        {% endif %}
+
+    {% else %}
+        <div class="status-icon dim">✕</div>
+        <div class="status-msg">{{ invoice.status }}</div>
+
     {% endif %}
+
 </div>
 {% endblock %}
