@@ -15,6 +15,10 @@ Reads directly from the same PostgreSQL database as the core. No API calls at ru
 
 Payment pages auto-refresh every 15 seconds via `<meta http-equiv="refresh">` — no JavaScript required.
 
+## Preview
+
+![Dashboard](assets/dashboard.png)
+
 ## Requirements
 
 - Rust (stable)
