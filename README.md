@@ -63,11 +63,33 @@ User=paymonero
 WantedBy=multi-user.target
 ```
 
+### nginx
+
+The `/admin` route is unauthenticated by default. Protect it with nginx Basic Auth in production.
+
+**Create password file:**
+
+```bash
+sudo apt install apache2-utils
+sudo htpasswd -c /etc/nginx/.htpasswd admin
+```
+
+**nginx config:**
+
 ```nginx
 server {
     listen 443 ssl;
     server_name pay.yourdomain.com;
 
+    # Admin dashboard — password protected
+    location /admin {
+        auth_basic "Admin";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # Customer payment pages — public
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header X-Real-IP $remote_addr;
@@ -79,4 +101,11 @@ server {
 
 - UI and core must be on the same version — they share the database schema
 - The UI has read-only access to the database; it does not write
-- `/admin` is unauthenticated by default — put it behind a firewall or nginx basic auth in production
+
+## Donations
+
+If you find this project useful, XMR donations are appreciated:
+
+```
+8BMaq1zdXL1JoaMBb39kEobUaXbybXa4bAGT2E8cfr9xREUu5kAUP5bVYkUcacui9PNJm2ejb8WSL7B3beKuHQuBQQJjzZa
+```
